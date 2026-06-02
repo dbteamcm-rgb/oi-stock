@@ -246,9 +246,21 @@ setTimeout(function(){
     modeBtn.id='oi-mode-btn';
     modeBtn.style.cssText='background:#1748A8;color:white;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;';
     modeBtn.onclick=function(){
-      window.OI_MODE = window.OI_MODE==='host'?'volunteer':'host';
-      localStorage.setItem('oi_mode',window.OI_MODE);
-      applyMode();
+      if(window.OI_MODE==='host'){
+        window.OI_MODE='volunteer';
+        localStorage.setItem('oi_mode','volunteer');
+        applyMode();
+      } else {
+        var pwd=prompt('\uD83D\uDD11 Ingresa la clave para modo Jefe:');
+        if(pwd===null) return;
+        if(pwd==='OI2019'){
+          window.OI_MODE='host';
+          localStorage.setItem('oi_mode','host');
+          applyMode();
+        } else {
+          alert('Clave incorrecta');
+        }
+      }
     };
     header.appendChild(modeBtn);
   }
