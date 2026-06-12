@@ -113,8 +113,28 @@ function getSectionForMaterial(matName, catName){
   var catKey = (catName||'').trim().toUpperCase();
   return OI_SEC_MAP[catKey] || window.OI_CUSTOM_SECS[catKey] || null;
 }
-window.OI_CUSTOM_SECS = {};
+window.OI_CUSTOM_SECS = JSON.parse(localStorage.getItem('oi_custom_secs')||'{}');
 window.OI_MODE = localStorage.getItem('oi_mode') || 'volunteer';
+
+/* ── Orden Programas → Coordinación: migración única ── */
+function migrateOrder(){
+  if(localStorage.getItem('oi_order_v2')) return;
+  if(!window.__oi_state || !window.__oi_setState) return;
+  var defs = window.__oi_state.matDefs.map(function(m){
+    var m2 = Object.assign({}, m);
+    var nm = (m2.name||'').trim();
+    if(nm==='Pinta book') m2.cat='Carpeta de Programas';
+    if(nm==='Block de dibujo') m2.cat='Materiales para actividades';
+    return m2;
+  });
+  var prog=[], coord=[];
+  defs.forEach(function(m){
+    if(getSectionForMaterial(m.name,m.cat)==='A cargo de Coordinación') coord.push(m);
+    else prog.push(m);
+  });
+  window.__oi_setState(Object.assign({}, window.__oi_state, {matDefs: prog.concat(coord)}));
+  localStorage.setItem('oi_order_v2','1');
+}
 
 /* ── Mi Caja: inject section headers ───────────── */
 function injectSections(){
@@ -207,6 +227,7 @@ setInterval(function(){
   var now = Date.now();
   if(now - _lastInject < 600) return;
   _lastInject = now;
+  migrateOrder();
   injectSections();
   injectReposicionSections();
 }, 700);
@@ -453,7 +474,16 @@ setTimeout(function(){
     var newMat={id:'m_'+Math.random().toString(36).slice(2,8),cat:cat,name:name,meta:meta};
     if(!isHost && window.__oi_state.zone) newMat.zone=window.__oi_state.zone;
     window.OI_CUSTOM_SECS[cat.toUpperCase()]=window._selSec;
-    var ns=Object.assign({},window.__oi_state,{matDefs:[...window.__oi_state.matDefs,newMat]});
+    localStorage.setItem('oi_custom_secs', JSON.stringify(window.OI_CUSTOM_SECS));
+    var defs=window.__oi_state.matDefs;
+    var newDefs;
+    if(window._selSec==='A cargo de Coordinación'){
+      newDefs=[...defs,newMat];
+    } else {
+      var firstCoordIdx=defs.findIndex(function(m){return getSectionForMaterial(m.name,m.cat)==='A cargo de Coordinación';});
+      newDefs=firstCoordIdx===-1?[...defs,newMat]:[...defs.slice(0,firstCoordIdx),newMat,...defs.slice(firstCoordIdx)];
+    }
+    var ns=Object.assign({},window.__oi_state,{matDefs:newDefs});
     window.__oi_setState(ns); closeForm();
   };
   document.getElementById('oi-edit-save').onclick=function(){
