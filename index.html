@@ -109,11 +109,13 @@ var OI_SEC_COLORS = {
 };
 function getSectionForMaterial(matName, catName){
   var matKey = (matName||'').trim().toUpperCase();
+  if(window.OI_MAT_OVERRIDE && window.OI_MAT_OVERRIDE[matKey]) return window.OI_MAT_OVERRIDE[matKey];
   if(OI_MAT_SEC[matKey]) return OI_MAT_SEC[matKey];
   var catKey = (catName||'').trim().toUpperCase();
   return OI_SEC_MAP[catKey] || window.OI_CUSTOM_SECS[catKey] || null;
 }
 window.OI_CUSTOM_SECS = JSON.parse(localStorage.getItem('oi_custom_secs')||'{}');
+window.OI_MAT_OVERRIDE = JSON.parse(localStorage.getItem('oi_mat_override')||'{}');
 window.OI_MODE = localStorage.getItem('oi_mode') || 'volunteer';
 
 /* ── Orden Programas → Coordinación: migración única ── */
@@ -473,6 +475,11 @@ setTimeout(function(){
     var isHost=window.OI_MODE==='host';
     var newMat={id:'m_'+Math.random().toString(36).slice(2,8),cat:cat,name:name,meta:meta};
     if(!isHost && window.__oi_state.zone) newMat.zone=window.__oi_state.zone;
+    var catSec = OI_SEC_MAP[cat.toUpperCase()] || window.OI_CUSTOM_SECS[cat.toUpperCase()] || null;
+    if(catSec && catSec!==window._selSec){
+      window.OI_MAT_OVERRIDE[name.toUpperCase()]=window._selSec;
+      localStorage.setItem('oi_mat_override', JSON.stringify(window.OI_MAT_OVERRIDE));
+    }
     window.OI_CUSTOM_SECS[cat.toUpperCase()]=window._selSec;
     localStorage.setItem('oi_custom_secs', JSON.stringify(window.OI_CUSTOM_SECS));
     var defs=window.__oi_state.matDefs;
